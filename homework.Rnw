@@ -1,0 +1,141 @@
+% !Rnw weave = knitr
+% !TeX program = XeLaTeX
+
+\documentclass[10pt]{article}
+
+\usepackage{amsmath}
+\usepackage[tmargin=1in,bmargin=1in,lmargin=1.25in,rmargin=1.25in]{geometry}
+\usepackage{fontspec}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\defaultfontfeatures{Ligatures=TeX}
+\usepackage{framed}
+
+\setsansfont{Myriad Pro}
+\setmainfont{Minion Pro}
+
+
+\titleformat*{\section}{\Large\bfseries\sffamily}
+\titleformat*{\subsection}{\large\bfseries\sffamily}
+\titleformat*{\subsubsection}{\itshape\subsubsectionfont}
+
+\title{Fortran 95: Finite Difference Solutions to Differential Equations}
+\author{Shane Stevens}
+\date{January 24, 2011}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\listoffigures
+
+<<environment, include=FALSE>>=
+opts_knit$set(progress = TRUE, verbose = TRUE, highlight=TRUE)
+require(ggplot2)
+require(reshape2)
+require(ggthemes)
+require(microbenchmark)
+require(compiler)
+require(tikzDevice)
+options(tikzDefaultEngine='xetex')
+@
+
+\section{Chemical Kinetic Model of Consecutive Reactions}
+
+\begin{eqnarray}
+A \xrightarrow{k_1} B \\    
+B \xrightarrow{k_2} C
+\end{eqnarray}
+
+\subsection{Differential Equations for above:}
+
+
+\begin{eqnarray}
+\frac{d[A]}{dt} & = -k_1[A] \\
+\frac{d[B]}{dt} & = k_1[A] -k_2[B] \\
+\frac{d[C]}{dt} & = k_2B
+\end{eqnarray}
+
+
+\subsection{Finite Difference Equations for Differential Equations:}
+
+
+\begin{eqnarray}
+\lbrack A(i) \rbrack & = [A(i-1)] -k_1[A(i-1)]\Delta t \\
+\lbrack B(i)] & = [B(i-1)]+(k_1[A(i-1)]-k_2[B(i-1)]) \Delta t \\
+\lbrack C(i)] & = [C(i-1)] + k_2[B(i-1)] \Delta t
+\end{eqnarray}
+
+
+\section{Fortran Code}
+
+<<fortran,eval=FALSE,results='asis'>>=
+PROGRAM finite_differences
+IMPLICIT NONE
+
+DOUBLE PRECISION, DIMENSION (2000,8) :: data=0.0
+DOUBLE PRECISION, :: k1=5.0, k2=20.0, dt=0.005
+INTEGER :: i, j
+
+DO i=2, 2000
+  data(i,1) = data(i-1,1) + data(i-1,1)*(-k1)*dt
+  data(i,2) = data(i-1,2) + (data(i-1,1)*k1*dt - data(i-1,2)*k2*dt)
+  data(i,3) = data(i-1,3) + data(i-1,2)*k2*dt
+  data(i,4) = data(i-1,1)*k1/k2
+  data(i,5) = 500.0*DEXP(-k1*i*dt)
+  data(i,6) = k1/(k2-k1)*5000.0*( DEXP(-k1*i*dt) - DEXP(-k2*i*dt) )
+  data(i,7) = 500.0*( 1- DEXP(-k1*i*dt) - k1/(k2-k1) * (DEXP(-k1*i*dt)-DEXP(-k2*i*dt) ) )
+  data(i,8) = i*dt
+END DO
+
+OPEN(UNIT=25, FILE='output.csv', ACTION='WRITE', STATUS='REPLACE')
+WRITE(25,30) ( (data(i,j), j=1, 8), i=1, 2000)
+30 FORMAT ( 7(ES20.12, ','), ES20.12)
+
+END PROGRAM finite_differences
+@
+
+\section{R Version of Program}
+
+<<data, highlight=TRUE, tidy=TRUE,cache=TRUE>>=
+#Set Variables:
+k1=5
+k2=20
+dt=0.0005
+data=rep(0,16000)
+dim(data)=c(2000,8)
+data=data.frame(data)
+data[1,1]=500
+
+for(i in 2:2000){
+  data[i,1]=data[i-1,1]-data[i-1,1]*k1*dt
+  data[i,2]=data[i-1,2]+(data[i-1,1]*k1*dt-data[i-1,2]*k2*dt)
+  data[i,3]=data[i-1,3]+data[i-1,2]*k2*dt
+  data[i,4]=data[i-1,1]*k1/k2
+  data[i,5]=500*exp(-k1*i*dt)
+  data[i,6]=k1/(k2-k1)*500*(exp(-k1*i*dt)-exp(-k2*i*dt))
+  data[i,7]=500*(1-exp(-k1*i*dt)-k1/(k2-k1)*(exp(-k1*i*dt)-exp(-k2*i*dt)))
+  data[i,8]=i*dt
+}
+@
+
+<<melt, highlight=TRUE,tidy=FALSE>>=
+names(data)=c('A','B','C','Steady State','A Approx','B Approx','C Approx','Time')
+data2=melt(data,id.vars='Time',
+           measure.vars=c('A','B','C','Steady State','A Approx','B Approx','C Approx'))
+names(data2)=c('Time','Trace','Concentration')
+@
+
+
+<<meltplots,highlight=TRUE,fig.height=6,fig.width=7,fig.env='figure',fig.cap='Plot of R code generated above',tidy=FALSE,dev='tikz'>>=
+ggplot(data2,aes(Time,Concentration,color=Trace,alpha=Trace))+
+  geom_line(aes(linetype=Trace))+
+  scale_linetype_manual(values=c(rep('solid',3),'dotdash',rep('dashed',3)))+
+  scale_color_manual(values=c('red','blue','green','blue2','red','blue','green'))+
+  scale_alpha_manual(values=c(rep(1,3),rep(.4,4)))+theme_igray()
+@
+
+
+\end{document}
