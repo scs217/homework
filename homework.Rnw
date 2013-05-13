@@ -53,9 +53,9 @@ B \xrightarrow{k_2} C
 
 
 \begin{eqnarray}
-\frac{d[A]}{dt} & = -k_1[A] \\
-\frac{d[B]}{dt} & = k_1[A] -k_2[B] \\
-\frac{d[C]}{dt} & = k_2B
+\frac{d[A]}{dt} & = & -k_1[A] \\
+\frac{d[B]}{dt} & = & k_1[A] -k_2[B] \\
+\frac{d[C]}{dt} & = & k_2B
 \end{eqnarray}
 
 

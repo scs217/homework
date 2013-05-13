@@ -55,7 +55,8 @@ $(FIGUREDIR):
 	R CMD BATCH "$^" "$@"
  
 %.pdf: %.tex 
-	xelatex $<
+	latexmk -xelatex $<
+	latexmk -c
 	
 clean:
 	-latexmk -c -quiet $(MAINFILE).tex
