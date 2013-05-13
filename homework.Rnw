@@ -63,9 +63,9 @@ B \xrightarrow{k_2} C
 
 
 \begin{eqnarray}
-\lbrack A(i) \rbrack & = [A(i-1)] -k_1[A(i-1)]\Delta t \\
-\lbrack B(i)] & = [B(i-1)]+(k_1[A(i-1)]-k_2[B(i-1)]) \Delta t \\
-\lbrack C(i)] & = [C(i-1)] + k_2[B(i-1)] \Delta t
+\lbrack A(i) \rbrack & = & [A(i-1)] -k_1[A(i-1)]\Delta t \\
+\lbrack B(i)] & = & [B(i-1)]+(k_1[A(i-1)]-k_2[B(i-1)]) \Delta t \\
+\lbrack C(i)] & = & [C(i-1)] + k_2[B(i-1)] \Delta t
 \end{eqnarray}
 
 
